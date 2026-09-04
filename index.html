@@ -73,7 +73,7 @@
   .balance .value{ font-size: 52px; font-weight:600; color:var(--cover); letter-spacing:-0.01em; }
   .balance .value sup{ font-size:22px; margin-right:2px; }
 
-  .stat-row{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 30px; }
+  .stat-row{ display:grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 30px; }
   .stat{ border: 1px solid var(--page-line); border-radius: 2px; padding: 12px 14px; background: rgba(255,255,255,0.25); }
   .stat .k{ font-size:11px; color:var(--ink-soft); margin-bottom:4px; }
   .stat .v{ font-size:20px; font-weight:600; }
@@ -137,7 +137,10 @@
 
   footer.page-note{ padding: 18px 40px 32px 88px; font-size:11px; color: var(--ink-soft); }
 
-  @media (max-width:700px){ .form-grid{ grid-template-columns: repeat(2,1fr); } }
+  @media (max-width:700px){
+    .form-grid{ grid-template-columns: repeat(2,1fr); }
+    .stat-row{ grid-template-columns: repeat(3,1fr); }
+  }
   @media (max-width:560px){
     .cover, .page, footer.page-note{ padding-left:56px; }
     .status{ left:56px; }
@@ -169,8 +172,9 @@
 
     <div class="stat-row">
       <div class="stat"><div class="k">รายได้รวม</div><div class="v num" id="stat-income">฿0</div></div>
-      <div class="stat neg"><div class="k">ค่าใช้จ่ายรวม</div><div class="v num" id="stat-expense">฿0</div></div>
+      <div class="stat"><div class="k">รายได้ Shopee</div><div class="v num" id="stat-shopee">฿0</div></div>
       <div class="stat"><div class="k">รายได้ TikTok</div><div class="v num" id="stat-tiktok">฿0</div></div>
+      <div class="stat neg"><div class="k">ค่าใช้จ่ายรวม</div><div class="v num" id="stat-expense">฿0</div></div>
       <div class="stat"><div class="k">รอบจ่ายเงินที่บันทึก</div><div class="v num" id="stat-rounds">0</div></div>
     </div>
 
@@ -182,7 +186,11 @@
         <div class="field"><label for="f-shopee">รายได้ Shopee (฿)</label><input type="number" id="f-shopee" placeholder="0"></div>
         <div class="field"><label for="f-tiktok">รายได้ TikTok (฿)</label><input type="number" id="f-tiktok" placeholder="0"></div>
         <div class="field"><label for="f-expense">ค่าใช้จ่าย (฿)</label><input type="number" id="f-expense" placeholder="0"></div>
-        <div class="field"><label for="f-account">ชื่อบัญชี (ถ้ามี)</label><input type="text" id="f-account" placeholder="เช่น mamee2rei"></div>
+        <div class="field">
+          <label for="f-account">ชื่อบัญชี (เลือกหรือพิมพ์ใหม่)</label>
+          <input type="text" id="f-account" list="account-options" placeholder="เลือกจากรายการ หรือพิมพ์ชื่อใหม่" autocomplete="off">
+          <datalist id="account-options"></datalist>
+        </div>
       </div>
       <div class="entry-actions">
         <button class="btn primary" id="btn-save" onclick="addEntry()">บันทึกรายการ</button>
@@ -280,8 +288,9 @@ async function loadFromSheet(){
 function computeTotals(){
   const totalIncome = state.months.reduce((s,m)=>s + m.shopee + m.tiktok, 0);
   const totalExpense = state.months.reduce((s,m)=>s + m.expense, 0);
+  const shopeeTotal = state.months.reduce((s,m)=>s + m.shopee, 0);
   const tiktokTotal = state.months.reduce((s,m)=>s + m.tiktok, 0);
-  return { totalIncome, totalExpense, tiktokTotal, netTotal: totalIncome - totalExpense };
+  return { totalIncome, totalExpense, shopeeTotal, tiktokTotal, netTotal: totalIncome - totalExpense };
 }
 
 function renderAll(){
@@ -289,9 +298,18 @@ function renderAll(){
   document.getElementById('net-total').innerHTML = '<sup>฿</sup>' + fmt(t.netTotal);
   document.getElementById('stat-income').textContent = baht(t.totalIncome);
   document.getElementById('stat-expense').textContent = baht(t.totalExpense);
+  document.getElementById('stat-shopee').textContent = baht(t.shopeeTotal);
   document.getElementById('stat-tiktok').textContent = baht(t.tiktokTotal);
   document.getElementById('stat-rounds').textContent = fmt(state.payoutRounds);
   document.getElementById('f-goal').value = state.monthlyGoal;
+
+  const datalist = document.getElementById('account-options');
+  datalist.innerHTML = '';
+  state.accounts.slice().sort((a,b)=>a.name.localeCompare(b.name,'th')).forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.name;
+    datalist.appendChild(opt);
+  });
 
   const chartEl = document.getElementById('chart');
   chartEl.innerHTML = '';
