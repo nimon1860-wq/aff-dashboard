@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AFF Dashboard — รายได้ Shopee &amp; TikTok</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cover: #0B3D2E;
+    --page: #ECE6D3;
+    --page-line: #D8CFB2;
+    --ink: #24301F;
+    --ink-soft: #5B6350;
+    --gold: #A67C1E;
+    --stamp-green: #2F6B4F;
+    --stamp-red: #9C3B2E;
+    --paper-shadow: rgba(11,61,46,0.18);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background: var(--cover);
+    background-image: radial-gradient(circle at 20% 10%, rgba(255,255,255,0.03), transparent 40%);
+    font-family:'Noto Serif Thai', serif; color: var(--ink); padding: 32px 16px 80px;
+  }
+  .num{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  .book{
+    max-width: 880px; margin: 0 auto; background: var(--page); border-radius: 4px;
+    box-shadow: 0 24px 60px var(--paper-shadow), 0 0 0 1px rgba(0,0,0,0.05);
+    position: relative; overflow: hidden;
+  }
+  .book::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:56px;
+    background: repeating-linear-gradient(to bottom, transparent 0 27px, var(--page-line) 27px 28px);
+    opacity:.5;
+  }
+
+  .cover{ background: var(--cover); color: #EFE9D6; padding: 36px 40px 30px 88px; position: relative; }
+  .cover .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .04em; color: #A9C6B4; margin: 0 0 6px; }
+  .cover h1{ margin: 0 0 6px; font-size: 34px; font-weight: 700; }
+  .cover p{ margin:0; color:#C9D8C9; font-size:14px; }
+  .cover .seal{
+    position:absolute; right: 34px; top: 30px; width: 64px; height:64px;
+    border: 2px solid #C9A227; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    color:#C9A227; font-family:'IBM Plex Mono',monospace; font-size:11px;
+    text-align:center; line-height:1.2; transform: rotate(-8deg); opacity:.85;
+  }
+  .status{
+    position:absolute; left:88px; bottom:10px; font-size:11px;
+    font-family:'IBM Plex Mono',monospace; color:#A9C6B4; display:flex; align-items:center; gap:6px;
+  }
+  .status .dot{ width:7px; height:7px; border-radius:50%; background:#7FB89A; }
+  .status.offline .dot{ background:#C98B6E; }
+  .status.offline{ color:#E0C4B4; }
+
+  .page{ padding: 30px 40px 36px 88px; }
+
+  .banner{
+    border:1px solid var(--stamp-red); background: rgba(156,59,46,0.08);
+    color: var(--stamp-red); font-size:12px; border-radius:2px;
+    padding:10px 14px; margin-bottom:20px; display:none;
+  }
+
+  .balance{
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    border-bottom: 1px dashed var(--page-line); padding-bottom: 22px; margin-bottom: 22px;
+  }
+  .balance .label{ font-size:14px; color:var(--ink-soft); }
+  .balance .value{ font-size: 52px; font-weight:600; color:var(--cover); letter-spacing:-0.01em; }
+  .balance .value sup{ font-size:22px; margin-right:2px; }
+
+  .stat-row{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 30px; }
+  .stat{ border: 1px solid var(--page-line); border-radius: 2px; padding: 12px 14px; background: rgba(255,255,255,0.25); }
+  .stat .k{ font-size:11px; color:var(--ink-soft); margin-bottom:4px; }
+  .stat .v{ font-size:20px; font-weight:600; }
+  .stat.neg .v{ color: var(--stamp-red); }
+
+  h2.section{ font-size:16px; font-weight:600; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
+  h2.section::after{ content:""; flex:1; height:1px; background:var(--page-line); }
+  .section-sub{ font-size:12px; color:var(--ink-soft); margin:0 0 16px; }
+
+  .entry-card{
+    border: 1px solid var(--page-line); border-radius: 3px;
+    padding: 18px 20px; margin-bottom: 30px; background: rgba(255,255,255,0.35);
+  }
+  .form-grid{ display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; margin-bottom:12px; }
+  .field label{ display:block; font-size:11px; color:var(--ink-soft); margin-bottom:4px; }
+  .field input{
+    width:100%; font-family:'IBM Plex Mono', monospace; font-size:13px;
+    border:1px solid var(--page-line); background:#FBF9F2; color:var(--ink);
+    border-radius:2px; padding:7px 8px;
+  }
+  .field input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .entry-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button.btn{
+    font-family:'Noto Serif Thai', serif; font-size:13px; font-weight:600;
+    border:none; border-radius:2px; padding:9px 16px; cursor:pointer;
+  }
+  button.btn.primary{ background: var(--cover); color:#EFE9D6; }
+  button.btn.ghost{ background:transparent; color:var(--ink-soft); border:1px solid var(--page-line); }
+  button.btn:disabled{ opacity:.5; cursor:wait; }
+  button.btn:hover:not(:disabled){ filter:brightness(1.1); }
+  .form-msg{ font-size:12px; margin-top:8px; color: var(--stamp-green); min-height:16px; }
+  .goal-row{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft); margin-top:14px; padding-top:14px; border-top:1px dotted var(--page-line); }
+  .goal-row input{ width:110px; font-family:'IBM Plex Mono',monospace; border:1px solid var(--page-line); border-radius:2px; padding:5px 7px; }
+
+  .chart{ display:flex; align-items:flex-end; gap: 10px; height: 180px; padding: 10px 4px 0; position:relative; margin-bottom: 6px; }
+  .chart .target-line{ position:absolute; left:0; right:0; border-top: 1px dashed var(--gold); }
+  .chart .target-label{ position:absolute; right:0; top:-16px; font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--gold); }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width: 0; }
+  .bar-wrap{ width:100%; height:100%; display:flex; align-items:flex-end; justify-content:center; }
+  .bar{ width: 60%; border-radius: 2px 2px 0 0; background: var(--stamp-green); position:relative; transition: height .3s ease; }
+  .bar.under{ background: var(--stamp-red); }
+  .bar-col .m-label{ font-size:11px; color:var(--ink-soft); text-align:center; }
+  .bar-col .m-pct{ font-size:11px; font-family:'IBM Plex Mono',monospace; font-weight:600; }
+
+  table{ width:100%; border-collapse:collapse; margin: 18px 0 30px; font-size:13px;}
+  thead th{ text-align:right; font-weight:600; font-size:11px; color:var(--ink-soft); padding: 6px 8px; border-bottom: 1px solid var(--ink); font-family:'IBM Plex Mono',monospace; font-weight:500; }
+  thead th:first-child, tbody td:first-child{ text-align:left; }
+  tbody td{ padding:7px 8px; text-align:right; border-bottom:1px dotted var(--page-line); }
+  tbody tr:last-child td{ border-bottom:none; }
+  .pct-cell{ font-family:'IBM Plex Mono',monospace; }
+  .pct-cell.hit{ color:var(--stamp-green); font-weight:600; }
+  .pct-cell.miss{ color:var(--stamp-red); }
+  tr.empty td{ color: var(--ink-soft); opacity:.55; }
+
+  .accounts{ margin-top: 6px; }
+  .acct-row{ display:grid; grid-template-columns: 130px 1fr 90px; align-items:center; gap:12px; margin-bottom:10px; font-size:13px; }
+  .acct-row .bar-bg{ height:10px; background:rgba(0,0,0,0.06); border-radius:5px; overflow:hidden; }
+  .acct-row .bar-fg{ height:100%; background: var(--cover); border-radius:5px; }
+  .acct-row .amt{ text-align:right; }
+  .empty-state{ font-size:13px; color:var(--ink-soft); padding:10px 0; }
+
+  footer.page-note{ padding: 18px 40px 32px 88px; font-size:11px; color: var(--ink-soft); }
+
+  @media (max-width:700px){ .form-grid{ grid-template-columns: repeat(2,1fr); } }
+  @media (max-width:560px){
+    .cover, .page, footer.page-note{ padding-left:56px; }
+    .status{ left:56px; }
+    .stat-row{ grid-template-columns: repeat(2,1fr); }
+    .balance .value{ font-size:38px; }
+    .acct-row{ grid-template-columns: 90px 1fr 70px; font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="book">
+  <div class="cover">
+    <div class="seal">AFF<br>2026</div>
+    <p class="eyebrow">สมุดบัญชีรายรับ — แอฟฟิลิเอต</p>
+    <h1>AFF Dashboard</h1>
+    <p>รายได้ Shopee &amp; TikTok · เชื่อมกับ Google Sheet โดยตรง</p>
+    <div class="status" id="status"><span class="dot"></span><span id="status-text">กำลังเชื่อมต่อ...</span></div>
+  </div>
+
+  <div class="page">
+
+    <div class="banner" id="error-banner"></div>
+
+    <div class="balance">
+      <span class="label">กำไรสุทธิสะสมทั้งหมด</span>
+      <span class="value num" id="net-total"><sup>฿</sup>0</span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="k">รายได้รวม</div><div class="v num" id="stat-income">฿0</div></div>
+      <div class="stat neg"><div class="k">ค่าใช้จ่ายรวม</div><div class="v num" id="stat-expense">฿0</div></div>
+      <div class="stat"><div class="k">รายได้ TikTok</div><div class="v num" id="stat-tiktok">฿0</div></div>
+      <div class="stat"><div class="k">รอบจ่ายเงินที่บันทึก</div><div class="v num" id="stat-rounds">0</div></div>
+    </div>
+
+    <h2 class="section">เพิ่มข้อมูลใหม่</h2>
+    <p class="section-sub">บันทึกแล้วจะเขียนเข้าแท็บ "Transactions" ใน Google Sheet ของคุณทันที</p>
+    <div class="entry-card">
+      <div class="form-grid">
+        <div class="field"><label for="f-date">วันที่</label><input type="date" id="f-date"></div>
+        <div class="field"><label for="f-shopee">รายได้ Shopee (฿)</label><input type="number" id="f-shopee" placeholder="0"></div>
+        <div class="field"><label for="f-tiktok">รายได้ TikTok (฿)</label><input type="number" id="f-tiktok" placeholder="0"></div>
+        <div class="field"><label for="f-expense">ค่าใช้จ่าย (฿)</label><input type="number" id="f-expense" placeholder="0"></div>
+        <div class="field"><label for="f-account">ชื่อบัญชี (ถ้ามี)</label><input type="text" id="f-account" placeholder="เช่น mamee2rei"></div>
+      </div>
+      <div class="entry-actions">
+        <button class="btn primary" id="btn-save" onclick="addEntry()">บันทึกรายการ</button>
+        <button class="btn ghost" id="btn-refresh" onclick="loadFromSheet()">รีเฟรชข้อมูล</button>
+      </div>
+      <div class="form-msg" id="form-msg"></div>
+      <div class="goal-row">
+        <span>เป้าหมายรายเดือนปัจจุบัน (฿)</span>
+        <input type="number" id="f-goal">
+        <button class="btn ghost" id="btn-goal" onclick="saveGoal()">บันทึกเป้าหมาย</button>
+      </div>
+    </div>
+
+    <h2 class="section">สรุปรายเดือน</h2>
+    <p class="section-sub">แท่งสีเขียว = ถึงเป้าหมาย, สีแดง = ต่ำกว่าเป้าหมาย · เส้นประ = เป้าหมายรายเดือน</p>
+    <div class="chart" id="chart"></div>
+
+    <table id="month-table">
+      <thead>
+        <tr><th>เดือน</th><th>Shopee</th><th>TikTok</th><th>รวม</th><th>ค่าใช้จ่าย</th><th>กำไรสุทธิ</th><th>เป้าหมาย</th><th>% บรรลุ</th></tr>
+      </thead>
+      <tbody id="month-body"></tbody>
+    </table>
+
+    <h2 class="section">สรุปตามบัญชี (สะสมทั้งหมด)</h2>
+    <p class="section-sub">เรียงจากรายได้สะสมมากไปน้อย</p>
+    <div class="accounts" id="accounts"></div>
+
+  </div>
+
+  <footer class="page-note">
+    ข้อมูลทั้งหมดอ่าน/เขียนจาก Google Sheet ของคุณโดยตรงผ่าน Apps Script — ดูขั้นตอนติดตั้งใน README.md
+  </footer>
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// วาง URL ของ Web App ที่ได้จากการ Deploy Google Apps Script ตรงนี้
+// (ดูขั้นตอนใน README.md) ตัวอย่างรูปแบบ:
+// "https://script.google.com/macros/s/AKfycb.../exec"
+// ---------------------------------------------------------------
+const API_URL = "https://script.google.com/macros/s/AKfycbz7KMbiht1O0xQ6VeIcqvpG1IMAhhDUwCTDR98VKgAVA_p0uEO-sdu0gaKb_rsQw3R-Fg/exec";
+
+const MONTH_NAMES = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const isOnline = API_URL.indexOf("https://script.google.com") === 0;
+
+// ค่าตั้งต้นสำหรับตอนที่ยังไม่ได้ตั้งค่า API_URL (โหมดตัวอย่าง/ออฟไลน์)
+let state = {
+  monthlyGoal: 10000,
+  payoutRounds: 0,
+  months: [],
+  accounts: []
+};
+
+const fmt = n => new Intl.NumberFormat('th-TH', {maximumFractionDigits:0}).format(n);
+const baht = n => '฿' + fmt(n);
+const monthLabel = m => MONTH_NAMES[m.monthIndex] + ' ' + m.year;
+
+function setStatus(text, offline){
+  const el = document.getElementById('status');
+  el.className = 'status' + (offline ? ' offline' : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+function showError(msg){
+  const b = document.getElementById('error-banner');
+  if(!msg){ b.style.display='none'; b.textContent=''; return; }
+  b.style.display='block';
+  b.textContent = msg;
+}
+
+async function loadFromSheet(){
+  if(!isOnline){
+    setStatus('โหมดตัวอย่าง (ยังไม่ได้ตั้งค่า API_URL)', true);
+    showError('ยังไม่ได้เชื่อมกับ Google Sheet — แก้ค่า API_URL ในไฟล์ index.html ตามขั้นตอนใน README.md');
+    renderAll();
+    return;
+  }
+  setStatus('กำลังโหลดข้อมูล...');
+  try{
+    const res = await fetch(API_URL, { method: 'GET' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    state = data;
+    setStatus('เชื่อมต่อ Google Sheet แล้ว');
+    showError(null);
+  }catch(err){
+    setStatus('เชื่อมต่อไม่สำเร็จ', true);
+    showError('โหลดข้อมูลจาก Google Sheet ไม่สำเร็จ (' + err.message + ') กำลังแสดงข้อมูลล่าสุดที่มีอยู่ในเครื่องแทน — ตรวจสอบว่า Deploy Web App แบบ "Anyone" แล้วหรือยัง');
+  }
+  renderAll();
+}
+
+function computeTotals(){
+  const totalIncome = state.months.reduce((s,m)=>s + m.shopee + m.tiktok, 0);
+  const totalExpense = state.months.reduce((s,m)=>s + m.expense, 0);
+  const tiktokTotal = state.months.reduce((s,m)=>s + m.tiktok, 0);
+  return { totalIncome, totalExpense, tiktokTotal, netTotal: totalIncome - totalExpense };
+}
+
+function renderAll(){
+  const t = computeTotals();
+  document.getElementById('net-total').innerHTML = '<sup>฿</sup>' + fmt(t.netTotal);
+  document.getElementById('stat-income').textContent = baht(t.totalIncome);
+  document.getElementById('stat-expense').textContent = baht(t.totalExpense);
+  document.getElementById('stat-tiktok').textContent = baht(t.tiktokTotal);
+  document.getElementById('stat-rounds').textContent = fmt(state.payoutRounds);
+  document.getElementById('f-goal').value = state.monthlyGoal;
+
+  const chartEl = document.getElementById('chart');
+  chartEl.innerHTML = '';
+
+  if(state.months.length === 0){
+    chartEl.innerHTML = '<div class="empty-state">ยังไม่มีข้อมูล — เพิ่มรายการแรกจากฟอร์มด้านบนได้เลย</div>';
+  } else {
+    const goal = state.monthlyGoal;
+    const maxVal = Math.max(goal, ...state.months.map(m => m.shopee + m.tiktok), 1);
+
+    const targetLine = document.createElement('div');
+    targetLine.className = 'target-line';
+    targetLine.style.bottom = (goal / maxVal * 100) + '%';
+    const targetLabel = document.createElement('div');
+    targetLabel.className = 'target-label';
+    targetLabel.textContent = 'เป้า ' + baht(goal);
+    targetLine.appendChild(targetLabel);
+    chartEl.appendChild(targetLine);
+
+    state.months.forEach(m => {
+      const total = m.shopee + m.tiktok;
+      const pct = goal > 0 ? Math.round((total / goal) * 100) : 0;
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      const wrap = document.createElement('div');
+      wrap.className = 'bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'bar' + (pct < 100 ? ' under' : '');
+      bar.style.height = Math.max((total / maxVal) * 100, total > 0 ? 3 : 0) + '%';
+      wrap.appendChild(bar);
+      col.appendChild(wrap);
+      const pctLabel = document.createElement('div');
+      pctLabel.className = 'm-pct';
+      pctLabel.style.color = pct >= 100 ? 'var(--stamp-green)' : (total > 0 ? 'var(--stamp-red)' : 'var(--ink-soft)');
+      pctLabel.textContent = total > 0 ? pct + '%' : '—';
+      col.appendChild(pctLabel);
+      const label = document.createElement('div');
+      label.className = 'm-label';
+      label.textContent = MONTH_NAMES[m.monthIndex];
+      col.appendChild(label);
+      chartEl.appendChild(col);
+    });
+  }
+
+  const tbody = document.getElementById('month-body');
+  tbody.innerHTML = '';
+  const goal = state.monthlyGoal;
+  state.months.forEach(m => {
+    const total = m.shopee + m.tiktok;
+    const net = total - m.expense;
+    const pct = goal > 0 ? Math.round((total / goal) * 100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${monthLabel(m)}</td>
+      <td class="num">${m.shopee ? fmt(m.shopee) : '-'}</td>
+      <td class="num">${m.tiktok ? fmt(m.tiktok) : '-'}</td>
+      <td class="num">${total ? fmt(total) : '-'}</td>
+      <td class="num">${m.expense ? fmt(m.expense) : '-'}</td>
+      <td class="num">${total ? fmt(net) : '-'}</td>
+      <td class="num">${fmt(goal)}</td>
+      <td class="pct-cell ${pct>=100?'hit':(total>0?'miss':'')}">${total>0 ? pct+'%' : '0%'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const acctEl = document.getElementById('accounts');
+  acctEl.innerHTML = '';
+  if(state.accounts.length === 0){
+    acctEl.innerHTML = '<div class="empty-state">ยังไม่มีข้อมูลบัญชี — ใส่ "ชื่อบัญชี" ตอนเพิ่มรายการเพื่อให้ขึ้นสรุปตรงนี้</div>';
+  } else {
+    const acctMax = Math.max(...state.accounts.map(a => a.total), 1);
+    state.accounts.slice().sort((a,b) => b.total - a.total).forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'acct-row';
+      row.innerHTML = `
+        <div>${a.name}</div>
+        <div class="bar-bg"><div class="bar-fg" style="width:${(a.total/acctMax)*100}%"></div></div>
+        <div class="amt num">${baht(a.total)}</div>
+      `;
+      acctEl.appendChild(row);
+    });
+  }
+}
+
+async function addEntry(){
+  const dateVal = document.getElementById('f-date').value;
+  const shopee = Number(document.getElementById('f-shopee').value) || 0;
+  const tiktok = Number(document.getElementById('f-tiktok').value) || 0;
+  const expense = Number(document.getElementById('f-expense').value) || 0;
+  const account = document.getElementById('f-account').value.trim();
+  const msg = document.getElementById('form-msg');
+
+  if(!dateVal){ msg.style.color='var(--stamp-red)'; msg.textContent='กรุณาเลือกวันที่ก่อนบันทึก'; return; }
+  if(shopee===0 && tiktok===0 && expense===0){ msg.style.color='var(--stamp-red)'; msg.textContent='กรอกยอดอย่างน้อย 1 ช่อง'; return; }
+  if(!isOnline){ msg.style.color='var(--stamp-red)'; msg.textContent='ยังไม่ได้เชื่อมกับ Google Sheet (ดู README.md)'; return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  try{
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // เลี่ยง CORS preflight
+      body: JSON.stringify({ action:'addEntry', date: dateVal, shopee, tiktok, expense, account })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    state = data;
+    renderAll();
+    msg.style.color='var(--stamp-green)';
+    msg.textContent = 'บันทึกเข้า Google Sheet แล้ว ✓';
+    ['f-shopee','f-tiktok','f-expense','f-account'].forEach(id => document.getElementById(id).value = '');
+  }catch(err){
+    msg.style.color='var(--stamp-red)';
+    msg.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'บันทึกรายการ';
+  }
+}
+
+async function saveGoal(){
+  const v = Number(document.getElementById('f-goal').value);
+  if(!(v > 0)) return;
+  if(!isOnline){ state.monthlyGoal = v; renderAll(); return; }
+
+  const btn = document.getElementById('btn-goal');
+  btn.disabled = true;
+  try{
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'setGoal', goal: v })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    state = data;
+    renderAll();
+  }catch(err){
+    showError('บันทึกเป้าหมายไม่สำเร็จ: ' + err.message);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+loadFromSheet();
+</script>
+</body>
+</html>
