@@ -57,6 +57,16 @@
   .status.offline .dot{ background:#C98B6E; }
   .status.offline{ color:#E0C4B4; }
 
+  /* แท็บ */
+  .tabs{ display:flex; gap:6px; padding: 14px 40px 0 88px; border-bottom:1px solid var(--page-line); position:relative; }
+  .tab-btn{
+    font-family:'Noto Serif Thai', serif; font-size:14px; font-weight:600;
+    background:transparent; color:var(--ink-soft); border:1px solid var(--page-line); border-bottom:none;
+    border-radius:3px 3px 0 0; padding:9px 18px; cursor:pointer; margin-bottom:-1px;
+  }
+  .tab-btn.active{ background: var(--cover); color:#EFE9D6; border-color: var(--cover); }
+  .tab-btn:hover:not(.active){ background: rgba(255,255,255,0.35); }
+
   .page{ padding: 30px 40px 36px 88px; }
 
   .banner{
@@ -128,6 +138,16 @@
   .pct-cell.miss{ color:var(--stamp-red); }
   tr.empty td{ color: var(--ink-soft); opacity:.55; }
 
+  /* ตารางวิดีโอ */
+  .vscroll{ overflow-x:auto; }
+  table.vtable thead th, table.vtable tbody td{ text-align:left; vertical-align:top; }
+  table.vtable tbody td{ min-width:110px; }
+  table.vtable tr.today td{ background: rgba(166,124,30,0.10); }
+  table.vtable .vdate{ white-space:nowrap; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  table.vtable .vitem{ font-size:13px; line-height:1.5; }
+  table.vtable .vitem small{ font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); }
+  table.vtable .vnone{ color:var(--ink-soft); opacity:.5; }
+
   .accounts{ margin-top: 6px; }
   .acct-row{ display:grid; grid-template-columns: 130px 1fr 90px; align-items:center; gap:12px; margin-bottom:10px; font-size:13px; }
   .acct-row .bar-bg{ height:10px; background:rgba(0,0,0,0.06); border-radius:5px; overflow:hidden; }
@@ -142,7 +162,7 @@
     .stat-row{ grid-template-columns: repeat(3,1fr); }
   }
   @media (max-width:560px){
-    .cover, .page, footer.page-note{ padding-left:56px; }
+    .cover, .page, footer.page-note, .tabs{ padding-left:56px; }
     .status{ left:56px; }
     .stat-row{ grid-template-columns: repeat(2,1fr); }
     .balance .value{ font-size:38px; }
@@ -161,7 +181,13 @@
     <div class="status" id="status"><span class="dot"></span><span id="status-text">กำลังเชื่อมต่อ...</span></div>
   </div>
 
-  <div class="page">
+  <div class="tabs">
+    <button class="tab-btn active" id="tabbtn-income" onclick="showTab('income')">รายได้</button>
+    <button class="tab-btn" id="tabbtn-video" onclick="showTab('video')">บันทึกวิดีโอ</button>
+  </div>
+
+  <!-- ===== แท็บที่ 1: รายได้ ===== -->
+  <div class="page" id="tab-income">
 
     <div class="banner" id="error-banner"></div>
 
@@ -221,6 +247,38 @@
 
   </div>
 
+  <!-- ===== แท็บที่ 2: บันทึกวิดีโอ ===== -->
+  <div class="page" id="tab-video" style="display:none">
+
+    <div class="banner" id="error-banner-v"></div>
+
+    <h2 class="section">บันทึกวิดีโอ</h2>
+    <p class="section-sub">บันทึกแล้วจะเขียนเข้าแท็บ "Videos" ใน Google Sheet ของคุณทันที</p>
+    <div class="entry-card">
+      <div class="form-grid">
+        <div class="field"><label for="v-date">วันที่</label><input type="date" id="v-date"></div>
+        <div class="field">
+          <label for="v-account">บัญชี</label>
+          <input type="text" id="v-account" list="video-account-options" placeholder="เลือกหรือพิมพ์" autocomplete="off">
+          <datalist id="video-account-options"></datalist>
+        </div>
+        <div class="field"><label for="v-video">วิดีโอ</label><input type="text" id="v-video" placeholder="เช่น video2(มี้)" autocomplete="off"></div>
+        <div class="field"><label for="v-amount">ยอด (ไม่บังคับ)</label><input type="number" id="v-amount" placeholder="0"></div>
+        <div class="field"><label for="v-note">หมายเหตุ (ไม่บังคับ)</label><input type="text" id="v-note" autocomplete="off"></div>
+      </div>
+      <div class="entry-actions">
+        <button class="btn primary" id="btn-save-video" onclick="addVideo()">บันทึกวิดีโอ</button>
+        <button class="btn ghost" onclick="loadFromSheet()">รีเฟรชข้อมูล</button>
+      </div>
+      <div class="form-msg" id="video-msg"></div>
+    </div>
+
+    <h2 class="section">ย้อนหลัง 10 วัน</h2>
+    <p class="section-sub">วันนี้อยู่แถวบนสุด · แต่ละช่อง = วิดีโอที่บันทึกของบัญชีนั้นในวันนั้น (ตัวเลข = ยอด)</p>
+    <div class="vscroll" id="video-grid"></div>
+
+  </div>
+
   <footer class="page-note">
     ข้อมูลทั้งหมดอ่าน/เขียนจาก Google Sheet ของคุณโดยตรงผ่าน Apps Script — ดูขั้นตอนติดตั้งใน README.md
   </footer>
@@ -242,12 +300,26 @@ let state = {
   monthlyGoal: 10000,
   payoutRounds: 0,
   months: [],
-  accounts: []
+  accounts: [],
+  videos: { days: [], accounts: [] }
 };
 
 const fmt = n => new Intl.NumberFormat('th-TH', {maximumFractionDigits:0}).format(n);
 const baht = n => '฿' + fmt(n);
 const monthLabel = m => MONTH_NAMES[m.monthIndex] + ' ' + m.year;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function showTab(name){
+  ['income','video'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = (t === name) ? '' : 'none';
+    document.getElementById('tabbtn-' + t).classList.toggle('active', t === name);
+  });
+}
 
 function setStatus(text, offline){
   const el = document.getElementById('status');
@@ -256,10 +328,12 @@ function setStatus(text, offline){
 }
 
 function showError(msg){
-  const b = document.getElementById('error-banner');
-  if(!msg){ b.style.display='none'; b.textContent=''; return; }
-  b.style.display='block';
-  b.textContent = msg;
+  ['error-banner','error-banner-v'].forEach(id => {
+    const b = document.getElementById(id);
+    if(!msg){ b.style.display='none'; b.textContent=''; return; }
+    b.style.display='block';
+    b.textContent = msg;
+  });
 }
 
 async function loadFromSheet(){
@@ -385,13 +459,86 @@ function renderAll(){
       const row = document.createElement('div');
       row.className = 'acct-row';
       row.innerHTML = `
-        <div>${a.name}</div>
+        <div>${esc(a.name)}</div>
         <div class="bar-bg"><div class="bar-fg" style="width:${(a.total/acctMax)*100}%"></div></div>
         <div class="amt num">${baht(a.total)}</div>
       `;
       acctEl.appendChild(row);
     });
   }
+
+  renderVideos();
+}
+
+function renderVideos(){
+  const v = state.videos || { days: [], accounts: [] };
+
+  const dl = document.getElementById('video-account-options');
+  dl.innerHTML = '';
+  (v.accounts || []).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    dl.appendChild(opt);
+  });
+
+  const grid = document.getElementById('video-grid');
+  grid.innerHTML = '';
+  const days = v.days || [];
+
+  const cols = [];
+  days.forEach(d => d.items.forEach(it => { if(cols.indexOf(it.account) < 0) cols.push(it.account); }));
+
+  if(cols.length === 0){
+    grid.innerHTML = '<div class="empty-state">ยังไม่มีบันทึกวิดีโอใน 10 วันล่าสุด — เพิ่มรายการแรกจากฟอร์มด้านบนได้เลย</div>';
+    return;
+  }
+
+  const table = document.createElement('table');
+  table.className = 'vtable';
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  ['วันที่'].concat(cols).forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  days.forEach((d, idx) => {
+    const tr = document.createElement('tr');
+    if(idx === 0) tr.className = 'today';
+    const tdDate = document.createElement('td');
+    tdDate.className = 'vdate';
+    tdDate.textContent = Number(d.date.slice(8)) + ' ' + MONTH_NAMES[Number(d.date.slice(5,7)) - 1] + (idx === 0 ? ' (วันนี้)' : '');
+    tr.appendChild(tdDate);
+
+    cols.forEach(acct => {
+      const td = document.createElement('td');
+      const items = d.items.filter(it => it.account === acct);
+      if(items.length === 0){
+        td.innerHTML = '<span class="vnone">-</span>';
+      } else {
+        items.forEach(it => {
+          const div = document.createElement('div');
+          div.className = 'vitem';
+          div.textContent = it.video;
+          if(it.amount !== '' && it.amount !== null && !isNaN(it.amount)){
+            const s = document.createElement('small');
+            s.textContent = ' · ' + fmt(it.amount);
+            div.appendChild(s);
+          }
+          if(it.note) div.title = it.note;
+          td.appendChild(div);
+        });
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  grid.appendChild(table);
 }
 
 async function addEntry(){
@@ -430,6 +577,43 @@ async function addEntry(){
   }
 }
 
+async function addVideo(){
+  const dateVal = document.getElementById('v-date').value;
+  const account = document.getElementById('v-account').value.trim();
+  const video = document.getElementById('v-video').value.trim();
+  const amountRaw = document.getElementById('v-amount').value;
+  const note = document.getElementById('v-note').value.trim();
+  const msg = document.getElementById('video-msg');
+
+  if(!dateVal){ msg.style.color='var(--stamp-red)'; msg.textContent='กรุณาเลือกวันที่ก่อนบันทึก'; return; }
+  if(!account){ msg.style.color='var(--stamp-red)'; msg.textContent='กรุณาระบุบัญชี'; return; }
+  if(!video){ msg.style.color='var(--stamp-red)'; msg.textContent='กรุณาระบุชื่อวิดีโอ'; return; }
+  if(!isOnline){ msg.style.color='var(--stamp-red)'; msg.textContent='ยังไม่ได้เชื่อมกับ Google Sheet (ดู README.md)'; return; }
+
+  const btn = document.getElementById('btn-save-video');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  try{
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'addVideo', date: dateVal, account, video, amount: amountRaw === '' ? '' : Number(amountRaw), note })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    state = data;
+    renderAll();
+    msg.style.color='var(--stamp-green)';
+    msg.textContent = 'บันทึกเข้า Google Sheet แล้ว ✓';
+    ['v-video','v-amount','v-note'].forEach(id => document.getElementById(id).value = '');
+  }catch(err){
+    msg.style.color='var(--stamp-red)';
+    msg.textContent = 'บันทึกไม่สำเร็จ: ' + err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'บันทึกวิดีโอ';
+  }
+}
+
 async function saveGoal(){
   const v = Number(document.getElementById('f-goal').value);
   if(!(v > 0)) return;
@@ -454,6 +638,8 @@ async function saveGoal(){
   }
 }
 
+document.getElementById('f-date').value = todayStr();
+document.getElementById('v-date').value = todayStr();
 loadFromSheet();
 </script>
 </body>
