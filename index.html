@@ -148,6 +148,11 @@
   table.vtable .vitem small{ font-family:'IBM Plex Mono',monospace; color:var(--ink-soft); }
   table.vtable .vnone{ color:var(--ink-soft); opacity:.5; }
 
+  .del-btn{ background:none; border:none; color:var(--stamp-red); cursor:pointer; font-family:inherit; font-size:12px; padding:0 4px; }
+  .del-btn:hover{ text-decoration:underline; }
+  table.vtable .del-btn{ opacity:.55; margin-left:2px; }
+  table.vtable .del-btn:hover{ opacity:1; }
+
   .accounts{ margin-top: 6px; }
   .acct-row{ display:grid; grid-template-columns: 130px 1fr 90px; align-items:center; gap:12px; margin-bottom:10px; font-size:13px; }
   .acct-row .bar-bg{ height:10px; background:rgba(0,0,0,0.06); border-radius:5px; overflow:hidden; }
@@ -244,6 +249,16 @@
     <h2 class="section">สรุปตามบัญชี (สะสมทั้งหมด)</h2>
     <p class="section-sub">เรียงจากรายได้สะสมมากไปน้อย</p>
     <div class="accounts" id="accounts"></div>
+
+    <h2 class="section" style="margin-top:30px">รายการล่าสุด</h2>
+    <p class="section-sub">15 รายการล่าสุด เรียงตามวันที่ · กด "ลบ" เพื่อลบแถวนั้นออกจาก Google Sheet (ย้อนกลับไม่ได้ในเว็บ)</p>
+    <div class="form-msg" id="del-msg"></div>
+    <table id="recent-table">
+      <thead>
+        <tr><th>วันที่</th><th>Shopee</th><th>TikTok</th><th>ค่าใช้จ่าย</th><th>บัญชี</th><th></th></tr>
+      </thead>
+      <tbody id="recent-body"></tbody>
+    </table>
 
   </div>
 
@@ -467,7 +482,59 @@ function renderAll(){
     });
   }
 
+  renderRecent();
   renderVideos();
+}
+
+function renderRecent(){
+  const body = document.getElementById('recent-body');
+  body.innerHTML = '';
+  const list = state.recent || [];
+  if(list.length === 0){
+    body.innerHTML = '<tr><td colspan="6" class="empty-state">ยังไม่มีรายการ</td></tr>';
+    return;
+  }
+  list.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${esc(r.date)}</td>
+      <td class="num">${r.shopee ? fmt(r.shopee) : '-'}</td>
+      <td class="num">${r.tiktok ? fmt(r.tiktok) : '-'}</td>
+      <td class="num">${r.expense ? fmt(r.expense) : '-'}</td>
+      <td>${esc(r.account) || '-'}</td>
+    `;
+    const td = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'del-btn';
+    btn.textContent = 'ลบ';
+    btn.onclick = () => deleteItem('deleteEntry', r.row, r.sig, 'del-msg');
+    td.appendChild(btn);
+    tr.appendChild(td);
+    body.appendChild(tr);
+  });
+}
+
+async function deleteItem(action, row, sig, msgId){
+  const msg = document.getElementById(msgId);
+  if(!confirm('ลบรายการนี้ออกจาก Google Sheet? (ย้อนกลับไม่ได้ในเว็บ)')) return;
+  if(!isOnline){ msg.style.color='var(--stamp-red)'; msg.textContent='ยังไม่ได้เชื่อมกับ Google Sheet (ดู README.md)'; return; }
+  msg.style.color='var(--ink-soft)'; msg.textContent='กำลังลบ...';
+  try{
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, row, sig })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    state = data;
+    renderAll();
+    msg.style.color='var(--stamp-green)';
+    msg.textContent = 'ลบแล้ว ✓';
+  }catch(err){
+    msg.style.color='var(--stamp-red)';
+    msg.textContent = 'ลบไม่สำเร็จ: ' + err.message;
+  }
 }
 
 function renderVideos(){
@@ -530,6 +597,12 @@ function renderVideos(){
             div.appendChild(s);
           }
           if(it.note) div.title = it.note;
+          const del = document.createElement('button');
+          del.className = 'del-btn';
+          del.textContent = '✕';
+          del.title = 'ลบรายการนี้';
+          del.onclick = () => deleteItem('deleteVideo', it.row, it.sig, 'video-msg');
+          div.appendChild(del);
           td.appendChild(div);
         });
       }
