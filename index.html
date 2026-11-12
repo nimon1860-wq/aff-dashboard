@@ -150,8 +150,6 @@
 
   .del-btn{ background:none; border:none; color:var(--stamp-red); cursor:pointer; font-family:inherit; font-size:12px; padding:0 4px; }
   .del-btn:hover{ text-decoration:underline; }
-  table.vtable .del-btn{ opacity:.55; margin-left:2px; }
-  table.vtable .del-btn:hover{ opacity:1; }
 
   .accounts{ margin-top: 6px; }
   .acct-row{ display:grid; grid-template-columns: 130px 1fr 90px; align-items:center; gap:12px; margin-bottom:10px; font-size:13px; }
@@ -600,12 +598,6 @@ function renderVideos(){
             div.appendChild(s);
           }
           if(it.note) div.title = it.note;
-          const del = document.createElement('button');
-          del.className = 'del-btn';
-          del.textContent = '✕';
-          del.title = 'ลบรายการนี้';
-          del.onclick = () => deleteItem('deleteVideo', it.row, it.sig, 'video-msg');
-          div.appendChild(del);
           td.appendChild(div);
         });
       }
