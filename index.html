@@ -319,6 +319,8 @@ let state = {
   videos: { days: [], accounts: [] }
 };
 
+const OLD_MSG = 'Apps Script ที่ Deploy อยู่ยังเป็นเวอร์ชันเก่า (ยังไม่รองรับวิดีโอ/การลบ) — วางโค้ด Code.gs ใหม่ แล้วไปที่ Deploy > Manage deployments > ดินสอ > Version: New version > Deploy';
+const isOldBackend = d => !d.videos || !d.recent;
 const fmt = n => new Intl.NumberFormat('th-TH', {maximumFractionDigits:0}).format(n);
 const baht = n => '฿' + fmt(n);
 const monthLabel = m => MONTH_NAMES[m.monthIndex] + ' ' + m.year;
@@ -366,7 +368,7 @@ async function loadFromSheet(){
     if(data.error) throw new Error(data.error);
     state = data;
     setStatus('เชื่อมต่อ Google Sheet แล้ว');
-    showError(null);
+    showError(isOldBackend(data) ? OLD_MSG : null);
   }catch(err){
     setStatus('เชื่อมต่อไม่สำเร็จ', true);
     showError('โหลดข้อมูลจาก Google Sheet ไม่สำเร็จ (' + err.message + ') กำลังแสดงข้อมูลล่าสุดที่มีอยู่ในเครื่องแทน — ตรวจสอบว่า Deploy Web App แบบ "Anyone" แล้วหรือยัง');
@@ -527,6 +529,7 @@ async function deleteItem(action, row, sig, msgId){
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error);
+    if(isOldBackend(data)) throw new Error(OLD_MSG);
     state = data;
     renderAll();
     msg.style.color='var(--stamp-green)';
@@ -674,6 +677,7 @@ async function addVideo(){
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error);
+    if(isOldBackend(data)) throw new Error(OLD_MSG);
     state = data;
     renderAll();
     msg.style.color='var(--stamp-green)';
