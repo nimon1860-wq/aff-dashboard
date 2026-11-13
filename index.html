@@ -246,15 +246,6 @@
     <p class="section-sub">เรียงจากรายได้สะสมมากไปน้อย</p>
     <div class="accounts" id="accounts"></div>
 
-    <h2 class="section" style="margin-top:30px">รายการล่าสุด</h2>
-    <p class="section-sub">15 รายการล่าสุด เรียงตามวันที่ · ถ้าต้องแก้ไขหรือลบ ให้แก้ในแท็บ Transactions ของ Google Sheet</p>
-    <table id="recent-table">
-      <thead>
-        <tr><th>วันที่</th><th>Shopee</th><th>TikTok</th><th>ค่าใช้จ่าย</th><th>บัญชี</th></tr>
-      </thead>
-      <tbody id="recent-body"></tbody>
-    </table>
-
   </div>
 
   <!-- ===== แท็บที่ 2: บันทึกวิดีโอ ===== -->
@@ -479,29 +470,7 @@ function renderAll(){
     });
   }
 
-  renderRecent();
   renderVideos();
-}
-
-function renderRecent(){
-  const body = document.getElementById('recent-body');
-  body.innerHTML = '';
-  const list = state.recent || [];
-  if(list.length === 0){
-    body.innerHTML = '<tr><td colspan="5" class="empty-state">ยังไม่มีรายการ</td></tr>';
-    return;
-  }
-  list.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="num">${esc(r.date)}</td>
-      <td class="num">${r.shopee ? fmt(r.shopee) : '-'}</td>
-      <td class="num">${r.tiktok ? fmt(r.tiktok) : '-'}</td>
-      <td class="num">${r.expense ? fmt(r.expense) : '-'}</td>
-      <td>${esc(r.account) || '-'}</td>
-    `;
-    body.appendChild(tr);
-  });
 }
 
 function renderVideos(){
